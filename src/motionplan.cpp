@@ -310,19 +310,19 @@ namespace mp{
 
     void MotionPlan:: fCostCal(LatticeInfo & poly5Order) // 8 times
     {
-        float time =DEFALUTVALUE;
-        float jerk =DEFALUTVALUE;
-        float speed = DEFALUTVALUE;
-        float maxAcc =DEFALUTVALUE;
-        float maxJerk=DEFALUTVALUE;
-        float d0=poly5Order.fiveOrderPolyCoeff.d0;
-        float d1=poly5Order.fiveOrderPolyCoeff.d1;
-        float d2=poly5Order.fiveOrderPolyCoeff.d2;
-        float d3=poly5Order.fiveOrderPolyCoeff.d3; 
-        float d4=poly5Order.fiveOrderPolyCoeff.d4;
-        float d5=poly5Order.fiveOrderPolyCoeff.d5;
-        float sdot=point_fre_v_.sdot;
-        float sEnd=poly5Order.sEnd;
+        double time =DEFALUTVALUE;
+        double jerk =DEFALUTVALUE;
+        double speed = DEFALUTVALUE;
+        double maxAcc =DEFALUTVALUE;
+        double maxJerk=DEFALUTVALUE;
+        double d0=poly5Order.fiveOrderPolyCoeff.d0;
+        double d1=poly5Order.fiveOrderPolyCoeff.d1;
+        double d2=poly5Order.fiveOrderPolyCoeff.d2;
+        double d3=poly5Order.fiveOrderPolyCoeff.d3; 
+        double d4=poly5Order.fiveOrderPolyCoeff.d4;
+        double d5=poly5Order.fiveOrderPolyCoeff.d5;
+        double sdot=point_fre_v_.sdot;
+        double sEnd=poly5Order.sEnd;
 
         if (sEnd==0)
         {
@@ -354,7 +354,7 @@ namespace mp{
         + 2*d1*d2*pow(sEnd,2)*pow(sdot,2) + 5*d4*d5*pow(sEnd,8)*pow(sdot,2)));
 
         //1-4 max lateral acc cost 
-        //root of ddd(l) 50d5xx 24d4x 6d3
+        //root of ddd(l) 60d5xx 24d4x 6d3
         double a= 60*d5;
         double b=24*d4;
         double c=6*d3;
@@ -378,8 +378,8 @@ namespace mp{
             }
             else 
             {
-                ans_1=(-b-sqrt(delta))/(-2*a);
-                ans_2=(-b+sqrt(delta))/(-2*a);
+                ans_1=(-b-sqrt(delta))/(2*a);
+                ans_2=(-b+sqrt(delta))/(2*a);
             }
         }
         //1-4-1 max curvature
@@ -387,14 +387,16 @@ namespace mp{
         double max_cur2=0.f;
         if (ans_1>0.&&ans_1<sEnd)
         {
-            max_cur1=2*d2+6*d3*ans_1+12*d4*pow(ans_1,2)+20*d5*pow(ans_1,3);
+            max_cur1=fabs(2*d2+6*d3*ans_1+12*d4*pow(ans_1,2)+20*d5*pow(ans_1,3));
         }
         if (ans_2>0.&&ans_2<sEnd)
         {
-            max_cur2=2*d2+6*d3*ans_2+12*d4*pow(ans_2,2)+20*d5*pow(ans_2,3);
-        }        
-        double max_cur=max(max_cur1,max_cur2);
-        double a_max=vehInfo_->vehSpeed*vehInfo_->vehSpeed*(2*refCentralLine_->pathCoef.c2);// ? c2 thought as a constan here
+            max_cur2=fabs(2*d2+6*d3*ans_2+12*d4*pow(ans_2,2)+20*d5*pow(ans_2,3));
+        }
+        double max_cur_t1 =max(fabs(2*d2+6*d3*sEnd+12*d4*pow(sEnd,2)+20*d5*pow(sEnd,3)),fabs(2*d2));        
+        double max_cur=fabs(max(max_cur1,max(max_cur2,max_cur_t1)));
+        //LOG(ERROR)<<"max_cur"<<max_cur;
+        double a_max=vehInfo_->vehSpeed*vehInfo_->vehSpeed*(max_cur);// 0925 do not use c2
         double temp_t=a_max-MaxAccOffset;
         poly5Order.cost_maxAccerelation=MaxAccCost*max(temp_t,0.);
         
@@ -413,9 +415,9 @@ namespace mp{
         // }
         // 1-5 find max jerk value 
         // 100d5 24d4 
-        float root1=0.f;
-        float root2=sEnd;
-        float root3=sEnd;
+        double root1=0.f;
+        double root2=sEnd;
+        double root3=sEnd;
         if (d5!=0.f)
         {
             root3=-1/5*d4*d5;
@@ -432,7 +434,7 @@ namespace mp{
         {
             jerk3=fabsf(60*d5*pow(root3,2)+24*d4*root3+6*d3);
         }
-        poly5Order.cost_maxJerk= MaxJerkCost*(pow(vehInfo_->vehSpeed,3)*max (jerk1,max(jerk2,jerk3))-MaxJerkOffset,0.f);
+        poly5Order.cost_maxJerk= MaxJerkCost*max(pow(vehInfo_->vehSpeed,3)*max (jerk1,max(jerk2,jerk3))-MaxJerkOffset,0.);
         // 1-6 overshoot cost 
         // reform d'
         double a_over=5*d5;
@@ -463,10 +465,11 @@ namespace mp{
         }
         // cal min max value of d
 
-        double maxJerk1=0.0,maxJerk2=0.0;
+        double maxD1=0.0,maxD2=0.0;
         if (ans_over1>0.0&&ans_over1<sEnd)
         {
-            maxJerk1=d0+d1*ans_over1+d2*pow(ans_over1,2)+d3*pow(ans_over1,3)+d4*pow(ans_over1,4)+d5*pow(ans_over1,5);
+            maxD1=d0+d1*ans_over1+d2*pow(ans_over1,2)+d3*pow(ans_over1,3)+d4*pow(ans_over1,4)+d5*pow(ans_over1,5);
+            LOG(ERROR)<<"maxD1"<<maxD1;
         }
         else 
         {
@@ -474,7 +477,7 @@ namespace mp{
         }
         if (ans_over2>0.0&&ans_over2<sEnd)
         {
-            maxJerk2=d0+d1*ans_over2+d2*pow(ans_over2,2)+d3*pow(ans_over2,3)+d4*pow(ans_over2,4)+d5*pow(ans_over2,5);
+            maxD2=d0+d1*ans_over2+d2*pow(ans_over2,2)+d3*pow(ans_over2,3)+d4*pow(ans_over2,4)+d5*pow(ans_over2,5);
         }
         else 
         {
@@ -482,9 +485,9 @@ namespace mp{
         }
         // judge sign 
         double Overshoot1=0.0,Overshoot2=0.0;
-        if (maxJerk1*d0<0.0)
+        if (maxD1*d0<0.0)
         {
-            Overshoot1=abs(maxJerk1)-OvershootOffset;
+            Overshoot1=abs(maxD1)-OvershootOffset;
             Overshoot1=max(0.0,Overshoot1);
         }
         else 
@@ -492,9 +495,9 @@ namespace mp{
             Overshoot1=0.0;
 
         }
-        if (maxJerk2*d0<0.0)
+        if (maxD2*d0<0.0)
         {
-            Overshoot2=abs(maxJerk2)-OvershootOffset;
+            Overshoot2=abs(maxD2)-OvershootOffset;
             Overshoot2=max(0.0,Overshoot2);
         }
         else 
@@ -508,7 +511,7 @@ namespace mp{
         double c2=refCentralLine_->pathCoef.c2;
         double c3=refCentralLine_->pathCoef.c3;
         double carFrontPos=0.0;
-        carFrontPos=c0+CARRA2FRONT*c1+pow(CARRA2FRONT,2)*c2+pow(CARRA2FRONT,3)*c3;
+        carFrontPos=-(c0+CARRA2FRONT*c1+pow(CARRA2FRONT,2)*c2+pow(CARRA2FRONT,3)*c3);//0925
         double leftDis=0.0, rightDis=0.0;
         leftDis=BordDistance-carFrontPos;
         rightDis=-BordDistance-carFrontPos;
@@ -539,7 +542,7 @@ namespace mp{
         if (nearestMax>0.)
         {
             realLimitBorder=leftDis-ref2Veh;
-            poly5Order.cost_border=BorderCost*max((nearestMax-realLimitBorder),0.);
+            poly5Order.cost_border=BorderCost*max((nearestMax-realLimitBorder),0.);//0902 temp mix frenet and vcs
         }
         else 
         {

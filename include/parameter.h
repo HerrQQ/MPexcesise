@@ -4,7 +4,7 @@
 #define STEPLENGTH 1
 #define DEFALUTVALUE 100000
 #define CYCLETIME 0.02
-#define EPSILON 1e-6
+#define EPSILON 1e-9
 #define CARWIDTH 2.018
 #define CARRA2FRONT 3.45
 
@@ -30,7 +30,7 @@
 #define TimeCost 0.3
 #define JerkCost 1.
 #define VelCost 1.
-#define MaxJerkCost 5.
+#define MaxJerkCost 1.
 #define MaxAccCost 5.
 #define OvershootCost 1.
 #define BorderCost 100.
